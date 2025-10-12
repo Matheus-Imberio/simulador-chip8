@@ -1,7 +1,7 @@
-# simulador-chip8
+# 🎮 Emulador Chip-8
 
-## **Para executar por enquanto:**
-```bash
-  make
- ./chip8 1-chip8-logo.ch8
- ```
+Implementação completa de uma máquina virtual Chip-8 com suporte a gráficos, áudio e entrada de teclado usando SDL2.
+
+---
+
+
