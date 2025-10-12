@@ -61,9 +61,14 @@ ls -lh chip8
 ./chip8 <arquivo_rom>
 ```
 
-**Exemplo:**
+**exemplo**
 ```bash
 ./chip8 1-chip8-logo.ch8
+```
+
+### exemplo
+```bash
+./chip8 --clock 700 roms/pong.ch8
 ```
 
 ### Ver Todas as Opções
@@ -82,11 +87,9 @@ Define a velocidade da CPU em Hz (instruções por segundo).
 **Padrão:** 500 Hz  
 **Exemplo:**
 ```bash
-# CPU mais lenta (jogos mais fáceis)
+# CPU mais lenta
 ./chip8 --clock 300 pong.ch8
 
-# CPU mais rápida (jogos mais difíceis)
-./chip8 --clock 1000 tetris.ch8
 ```
 
 ---
@@ -98,10 +101,10 @@ Define o fator de escala da janela.
 **Exemplo:**
 ```bash
 # Janela pequena (fator 5 = 320x160)
-./chip8 --scale 5 jogo.ch8
+./chip8 --scale 5 pong.ch8
 
 # Janela grande (fator 20 = 1280x640)
-./chip8 --scale 20 jogo.ch8
+./chip8 --scale 20 pong.ch8
 ```
 
 ---
@@ -198,26 +201,6 @@ Deve ouvir um beep contínuo. Pressione ESC para sair.
 A janela deve ficar maior (960x480 pixels).
 
 
-##  ROMs de Exemplo
-
-### Baixar ROMs Públicas
-
-```bash
-# Criar pasta para ROMs
-mkdir -p roms
-cd roms
-
-# Pong (clássico com som)
-wget https://github.com/kripod/chip8-roms/raw/master/games/Pong%20%5BPaul%20Vervalin%2C%201990%5D.ch8 -O pong.ch8
-
-cd ..
-
-# Jogar
-./chip8 --clock 700 roms/pong.ch8
-```
-
----
-
 ---
 
 ## Modo Debug
@@ -236,7 +219,7 @@ g++ -o chip8 main.cpp c8vm.cpp -std=c++17 -lSDL2
 
 3. Execute:
 ```bash
-./chip8 jogo.ch8
+./chip8 pong.ch8
 ```
 
 Você verá no console:
