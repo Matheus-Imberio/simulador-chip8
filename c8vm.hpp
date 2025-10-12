@@ -6,52 +6,59 @@
 #include <array>
 #include <string>
 #include <SDL2/SDL.h>
-#include <chrono>
-#include <thread>
 
 class VM
 {
 public:
-    // estruturas da VM
-    std::array<uint8_t, 4096> RAM{};        
-    std::array<uint8_t, 16> V{};            
-    std::array<uint16_t, 16> STACK{};       
+    // Estruturas da VM
+    std::array<uint8_t, 4096> RAM{};        // 4KB de memória
+    std::array<uint8_t, 16> V{};            // 16 registradores V0-VF
+    std::array<uint16_t, 16> STACK{};       // Pilha com 16 níveis
     std::array<uint8_t, 64 * 32> DISPLAY{}; // Tela 64x32 pixels
     std::array<uint8_t, 16> KEYS{};         // Estado das 16 teclas
 
     // Registradores especiais
-    uint16_t PC;    // program counter
-    uint8_t SP;     // stack pointer
-    uint16_t I;     // registrador de endereço
-    uint8_t DT;     // delay timer
-    uint8_t ST;     // sound timer
+    uint16_t PC;    // Program Counter
+    uint8_t SP;     // Stack Pointer
+    uint16_t I;     // Registrador de endereço
+    uint8_t DT;     // Delay Timer
+    uint8_t ST;     // Sound Timer
 
-    // SDL->componentes gráficos
+    // SDL - componentes gráficos
     SDL_Window* janela;
     SDL_Renderer* renderizador;
     SDL_Texture* textura;
     
+    // SDL - áudio
+    SDL_AudioDeviceID dispositivo_audio;
+    bool audio_inicializado;
+    
     // Config
     int escala;           // fator de zoom da janela
-    int velocidade_cpu;   // Hz (instrucao por segundo)
+    int velocidade_cpu;   // Hz (instruções por segundo)
     bool rodando;         // controla o loop principal
 
     // Construtor e destrutor
     VM(uint16_t pc_inicial = 0x200);
     ~VM();
 
-    // metodos principais da VM
+    // Métodos principais da VM
     void carregarROM(const std::string &arquivo, uint16_t pc_inicial = 0x200);
     void executarInstrucao();
     void decrementarTimers();
     void imprimirRegistradores() const;
 
-    // Métodos SDL
+    // Métodos SDL - vídeo
     bool inicializarSDL(int escala_janela = 10);
     void fecharSDL();
     void renderizar();
     void processarInput();
     void loopPrincipal();
+    
+    // Métodos SDL - áudio
+    bool inicializarAudio();
+    void fecharAudio();
+    void atualizarAudio();
 };
 
 #endif

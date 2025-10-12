@@ -3,7 +3,10 @@
 #include <fstream>
 #include <stdexcept>
 #include <iomanip>
-
+#include <cstdlib>
+#include <ctime>
+#include <chrono>
+#include <thread>
 
 // Sprites dos dígitos hexadecimais (0-F)
 static const uint8_t FONT_SET[80] = {
@@ -25,9 +28,7 @@ static const uint8_t FONT_SET[80] = {
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
-
-
-VM::VM(uint16_t pc_inicial) : PC(pc_inicial), SP(0), I(0)
+VM::VM(uint16_t pc_inicial) : PC(pc_inicial), SP(0), I(0), DT(0), ST(0)
 {
     RAM.fill(0);
     V.fill(0);
@@ -35,14 +36,25 @@ VM::VM(uint16_t pc_inicial) : PC(pc_inicial), SP(0), I(0)
     DISPLAY.fill(0);
     KEYS.fill(0);
 
-    // Carregar sprites dos dígitos na memória(0x000 - 0x04F)
+    // Inicializa ponteiros SDL
+    janela = nullptr;
+    renderizador = nullptr;
+    textura = nullptr;
+    dispositivo_audio = 0;
+    audio_inicializado = false;
+    
+    // Valores padrão
+    escala = 10;
+    velocidade_cpu = 500;
+    rodando = false;
+
+    // Carregar sprites dos dígitos na memória (0x000 - 0x04F)
     for (int i = 0; i < 80; ++i) {
         RAM[i] = FONT_SET[i];
     }
     
     // Inicializar gerador de números aleatórios
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
-
 }
 
 void VM::carregarROM(const std::string &arquivo, uint16_t pc_inicial)
@@ -70,15 +82,22 @@ void VM::carregarROM(const std::string &arquivo, uint16_t pc_inicial)
         }
     }
 
-    std::cout << "ROM carregada (" << tam_rom << " bytes)\n";
+    std::cout << "ROM carregada (" << tam_rom << " bytes) no endereço 0x"
+              << std::hex << pc_inicial << std::dec << "\n";
 }
 
 void VM::executarInstrucao()
 {
+    if (PC >= 4096) {
+        throw std::runtime_error("PC fora dos limites da memória");
+    }
+
     uint16_t inst = (RAM[PC] << 8) | RAM[PC + 1];
 
-    std::cout << "Instrução: 0x" << std::hex << std::uppercase
-              << std::setw(4) << std::setfill('0') << inst << std::dec << "\n";
+    #ifdef DEBUG
+    std::cout << "PC: 0x" << std::hex << std::setw(3) << std::setfill('0') << PC
+              << " | Instrução: 0x" << std::setw(4) << inst << std::dec << "\n";
+    #endif
 
     uint8_t grupo = inst >> 12;
     uint8_t X = (inst & 0x0F00) >> 8;
@@ -101,7 +120,7 @@ void VM::executarInstrucao()
             SP--;
             PC = STACK[SP];
         } else {
-            // 0NNN - Chama rotina RCA 1802 (ignorado em implementações modernas)
+            // 0NNN - Chama rotina RCA 1802 (ignorado)
         }
         PC += 2;
         break;
@@ -145,7 +164,7 @@ void VM::executarInstrucao()
         PC += 2;
         break;
 
-    case 0x7: // 7XNN - Adiciona NN a VX (sem carry)
+    case 0x7: // 7XNN - Adiciona NN a VX
         V[X] += NN;
         PC += 2;
         break;
@@ -174,15 +193,15 @@ void VM::executarInstrucao()
             V[0xF] = (V[X] >= V[Y]) ? 1 : 0;
             V[X] -= V[Y];
             break;
-        case 0x6: // 8XY6 - VX = VY >> 1, VF = bit menos significativo
+        case 0x6: // 8XY6 - VX = VY >> 1
             V[0xF] = V[Y] & 0x1;
             V[X] = V[Y] >> 1;
             break;
-        case 0x7: // 8XY7 - VX = VY - VX, VF = NOT borrow
+        case 0x7: // 8XY7 - VX = VY - VX
             V[0xF] = (V[Y] >= V[X]) ? 1 : 0;
             V[X] = V[Y] - V[X];
             break;
-        case 0xE: // 8XYE - VX = VY << 1, VF = bit mais significativo
+        case 0xE: // 8XYE - VX = VY << 1
             V[0xF] = (V[Y] & 0x80) >> 7;
             V[X] = V[Y] << 1;
             break;
@@ -213,7 +232,7 @@ void VM::executarInstrucao()
         PC += 2;
         break;
 
-    case 0xD: { // DXYN - Desenha sprite na posição (VX, VY) com altura N
+    case 0xD: { // DXYN - Desenha sprite
         uint8_t x = V[X] % 64;
         uint8_t y = V[Y] % 32;
         uint8_t height = N;
@@ -229,7 +248,7 @@ void VM::executarInstrucao()
                 if (spriteByte & (0x80 >> col)) {
                     int idx = (y + row) * 64 + (x + col);
                     if (DISPLAY[idx] == 1) {
-                        V[0xF] = 1; // Colisão detectada
+                        V[0xF] = 1; // Colisão
                     }
                     DISPLAY[idx] ^= 1;
                 }
@@ -240,11 +259,11 @@ void VM::executarInstrucao()
     }
 
     case 0xE:
-        if (NN == 0x9E) { // EX9E - Pula se tecla VX está pressionada
+        if (NN == 0x9E) { // EX9E - Pula se tecla pressionada
             if (KEYS[V[X] & 0xF] == 1) {
                 PC += 2;
             }
-        } else if (NN == 0xA1) { // EXA1 - Pula se tecla VX não está pressionada
+        } else if (NN == 0xA1) { // EXA1 - Pula se tecla não pressionada
             if (KEYS[V[X] & 0xF] == 0) {
                 PC += 2;
             }
@@ -257,7 +276,7 @@ void VM::executarInstrucao()
         case 0x07: // FX07 - VX = DT
             V[X] = DT;
             break;
-        case 0x0A: // FX0A - Aguarda tecla pressionada e armazena em VX
+        case 0x0A: // FX0A - Aguarda tecla
             {
                 bool tecla_pressionada = false;
                 for (int i = 0; i < 16; ++i) {
@@ -268,7 +287,7 @@ void VM::executarInstrucao()
                     }
                 }
                 if (!tecla_pressionada) {
-                    return; // Não avança PC - aguarda tecla
+                    return; // Não avança PC
                 }
             }
             break;
@@ -281,20 +300,20 @@ void VM::executarInstrucao()
         case 0x1E: // FX1E - I = I + VX
             I += V[X];
             break;
-        case 0x29: // FX29 - I = endereço do sprite do dígito VX
+        case 0x29: // FX29 - I = sprite do dígito
             I = (V[X] & 0xF) * 5;
             break;
-        case 0x33: // FX33 - Armazena BCD de VX em I, I+1, I+2
+        case 0x33: // FX33 - BCD
             RAM[I] = V[X] / 100;
             RAM[I + 1] = (V[X] / 10) % 10;
             RAM[I + 2] = V[X] % 10;
             break;
-        case 0x55: // FX55 - Armazena V0 a VX na memória a partir de I
+        case 0x55: // FX55 - Store registers
             for (int i = 0; i <= X; ++i) {
                 RAM[I + i] = V[i];
             }
             break;
-        case 0x65: // FX65 - Carrega V0 a VX da memória a partir de I
+        case 0x65: // FX65 - Load registers
             for (int i = 0; i <= X; ++i) {
                 V[i] = RAM[I + i];
             }
@@ -312,11 +331,11 @@ void VM::executarInstrucao()
 
 void VM::imprimirRegistradores() const
 {
-    std::cout << "PC: 0x" << std::hex << PC
-              << " I: 0x" << I
-              << " SP: 0x" << std::dec << static_cast<int>(SP) << "\n"
-              << " DT: " << static_cast<int>(DT)
-              << " ST: " << static_cast<int>(ST) << "\n";
+    std::cout << "PC: 0x" << std::hex << std::setw(3) << std::setfill('0') << PC
+              << " | I: 0x" << std::setw(3) << I
+              << " | SP: " << std::dec << static_cast<int>(SP)
+              << " | DT: " << static_cast<int>(DT)
+              << " | ST: " << static_cast<int>(ST) << "\n";
 
     for (int i = 0; i < 16; ++i) {
         std::cout << "V" << std::hex << i << ": 0x"
@@ -337,9 +356,10 @@ void VM::decrementarTimers()
     }
 }
 
-// Destrutor - fecha SDL ao destruir a VM
+// Destrutor - fecha SDL e áudio
 VM::~VM()
 {
+    fecharAudio();
     fecharSDL();
 }
 
@@ -377,7 +397,7 @@ bool VM::inicializarSDL(int escala_janela)
         return false;
     }
 
-    // Cria textura 64x32 (será esticada pela janela)
+    // Cria textura 64x32
     textura = SDL_CreateTexture(
         renderizador,
         SDL_PIXELFORMAT_RGBA8888,
@@ -394,7 +414,7 @@ bool VM::inicializarSDL(int escala_janela)
     return true;
 }
 
-// Fecha tudo do SDL
+// Fecha SDL
 void VM::fecharSDL()
 {
     if (textura) SDL_DestroyTexture(textura);
@@ -403,39 +423,30 @@ void VM::fecharSDL()
     SDL_Quit();
 }
 
-// Renderiza o display na tela (60Hz)
+// Renderiza o display (60Hz)
 void VM::renderizar()
 {
-    // Buffer de pixels (64x32, cada pixel = 4 bytes RGBA)
+    // Buffer de pixels
     uint32_t pixels[64 * 32];
 
-    // Converte display (0 ou 1) para pixels (preto ou branco)
+    // Converte display para pixels
     for (int i = 0; i < 64 * 32; i++) {
-        // Se pixel ligado = branco (0xFFFFFFFF), senão preto (0xFF000000)
         pixels[i] = DISPLAY[i] ? 0xFFFFFFFF : 0xFF000000;
     }
 
-    // Atualiza textura com os pixels
+    // Atualiza textura
     SDL_UpdateTexture(textura, nullptr, pixels, 64 * sizeof(uint32_t));
-
-    // Limpa tela
     SDL_RenderClear(renderizador);
-
-    // Desenha textura (SDL estica automaticamente pro tamanho da janela)
     SDL_RenderCopy(renderizador, textura, nullptr, nullptr);
-
-    // Mostra na tela
     SDL_RenderPresent(renderizador);
 }
 
-// Processa eventos de teclado e janela
+// Processa eventos de teclado
 void VM::processarInput()
 {
     SDL_Event evento;
 
-    // Pega todos os eventos da fila
     while (SDL_PollEvent(&evento)) {
-        // Fecha janela ou ESC
         if (evento.type == SDL_QUIT) {
             rodando = false;
         }
@@ -444,13 +455,7 @@ void VM::processarInput()
             rodando = false;
         }
 
-        // Mapeia teclado físico -> Chip-8
-        // Chip-8:     Teclado físico:
-        // 1 2 3 C     1 2 3 4
-        // 4 5 6 D     Q W E R
-        // 7 8 9 E     A S D F
-        // A 0 B F     Z X C V
-
+        // Mapeia teclas
         if (evento.type == SDL_KEYDOWN) {
             switch (evento.key.keysym.sym) {
                 case SDLK_1: KEYS[0x1] = 1; break;
@@ -472,7 +477,6 @@ void VM::processarInput()
             }
         }
 
-        // Solta tecla
         if (evento.type == SDL_KEYUP) {
             switch (evento.key.keysym.sym) {
                 case SDLK_1: KEYS[0x1] = 0; break;
@@ -499,15 +503,13 @@ void VM::processarInput()
 // Loop principal da VM
 void VM::loopPrincipal()
 {
-    // Timing
     auto ultimo_ciclo = std::chrono::high_resolution_clock::now();
     auto ultimo_timer = std::chrono::high_resolution_clock::now();
     auto ultimo_frame = std::chrono::high_resolution_clock::now();
 
-    // Intervalos (em microssegundos)
-    const int intervalo_cpu = 1000000 / velocidade_cpu;  // ex: 500Hz = 2000us
-    const int intervalo_timer = 1000000 / 60;            // 60Hz = ~16666us
-    const int intervalo_frame = 1000000 / 60;            // 60Hz
+    const int intervalo_cpu = 1000000 / velocidade_cpu;
+    const int intervalo_timer = 1000000 / 60;
+    const int intervalo_frame = 1000000 / 60;
 
     std::cout << "Loop iniciado! CPU: " << velocidade_cpu << "Hz\n";
     std::cout << "Pressione ESC para sair\n\n";
@@ -515,10 +517,9 @@ void VM::loopPrincipal()
     while (rodando) {
         auto agora = std::chrono::high_resolution_clock::now();
 
-        // Processa input a cada frame
         processarInput();
 
-        // Executa instrução (na velocidade da CPU configurada)
+        // Executa instrução
         auto tempo_desde_ciclo = std::chrono::duration_cast<std::chrono::microseconds>(
             agora - ultimo_ciclo
         ).count();
@@ -528,17 +529,18 @@ void VM::loopPrincipal()
             ultimo_ciclo = agora;
         }
 
-        // Decrementa timers a 60Hz
+        // Decrementa timers e atualiza áudio
         auto tempo_desde_timer = std::chrono::duration_cast<std::chrono::microseconds>(
             agora - ultimo_timer
         ).count();
 
         if (tempo_desde_timer >= intervalo_timer) {
             decrementarTimers();
+            atualizarAudio(); // NOVA LINHA - atualiza som baseado em ST
             ultimo_timer = agora;
         }
 
-        // Renderiza a 60Hz
+        // Renderiza
         auto tempo_desde_frame = std::chrono::duration_cast<std::chrono::microseconds>(
             agora - ultimo_frame
         ).count();
@@ -548,9 +550,78 @@ void VM::loopPrincipal()
             ultimo_frame = agora;
         }
 
-        // Pequeno sleep pra não consumir 100% da CPU
         std::this_thread::sleep_for(std::chrono::microseconds(100));
     }
 
     std::cout << "Emulador encerrado\n";
+}
+
+// ============================================
+// FUNÇÕES DE ÁUDIO
+// ============================================
+
+// Callback de áudio - gera onda quadrada (beep 440Hz)
+void audioCallback(void* userdata, uint8_t* stream, int len) {
+    static uint32_t sample_index = 0;
+    const int sample_rate = 44100;
+    const int frequencia = 440; // nota Lá
+    const int amplitude = 28000;
+    
+    int16_t* buffer = (int16_t*)stream;
+    int samples = len / 2;
+    
+    for (int i = 0; i < samples; i++) {
+        int periodo = sample_rate / frequencia;
+        int16_t valor = ((sample_index % periodo) < (periodo / 2)) ? amplitude : -amplitude;
+        buffer[i] = valor;
+        sample_index++;
+    }
+}
+
+// Inicializa sistema de áudio
+bool VM::inicializarAudio() {
+    audio_inicializado = false;
+    
+    SDL_AudioSpec spec_desejada, spec_obtida;
+    
+    SDL_zero(spec_desejada);
+    spec_desejada.freq = 44100;
+    spec_desejada.format = AUDIO_S16SYS;
+    spec_desejada.channels = 1;
+    spec_desejada.samples = 2048;
+    spec_desejada.callback = audioCallback;
+    spec_desejada.userdata = nullptr;
+    
+    dispositivo_audio = SDL_OpenAudioDevice(
+        nullptr, 0, &spec_desejada, &spec_obtida, 0
+    );
+    
+    if (dispositivo_audio == 0) {
+        std::cerr << "Erro ao abrir dispositivo de áudio: " << SDL_GetError() << "\n";
+        return false;
+    }
+    
+    audio_inicializado = true;
+    std::cout << "Áudio inicializado: " << spec_obtida.freq << "Hz\n";
+    return true;
+}
+
+// Fecha áudio
+void VM::fecharAudio() {
+    if (audio_inicializado && dispositivo_audio != 0) {
+        SDL_CloseAudioDevice(dispositivo_audio);
+        audio_inicializado = false;
+    }
+}
+
+// Atualiza estado do áudio baseado no Sound Timer
+void VM::atualizarAudio() {
+    if (!audio_inicializado) return;
+    
+    // Se ST > 0, toca beep; se ST == 0, para
+    if (ST > 0) {
+        SDL_PauseAudioDevice(dispositivo_audio, 0); // play
+    } else {
+        SDL_PauseAudioDevice(dispositivo_audio, 1); // pause
+    }
 }
