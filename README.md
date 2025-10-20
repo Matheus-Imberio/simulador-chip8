@@ -82,6 +82,28 @@ Observações importantes:
 
 ---
 
+### Baixar e rodar novas ROMs (.ch8)
+
+1. Baixe a ROM (.ch8) de uma fonte confiável (ex.: repositórios de domínio público de Chip‑8).
+2. Salve o arquivo na pasta do projeto (ou anote o caminho completo).
+3. Execute:
+```bash
+./chip8 'caminho/para/sua_rom.ch8'
+# com opções:
+./chip8 --clock 700 --scale 15 caminho/para/sua_rom.ch8
+```
+4. Alternativa com Make:
+```bash
+make run ROM=caminho/para/sua_rom.ch8
+make run ROM=caminho/para/sua_rom.ch8 ARGS="--clock 700 --scale 15"
+```
+
+Dicas:
+- A maioria das ROMs usa endereço de carga padrão `0x200`; se a ROM pedir outro, use `--load-addr 0x600` (exemplo).
+- Pressione `ESC` para sair.
+
+---
+
 ## Mapeamento do teclado
 
 | Chip-8 | Teclado físico |
