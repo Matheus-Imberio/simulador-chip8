@@ -562,17 +562,19 @@ void VM::loopPrincipal()
 
 // Callback de áudio - gera onda quadrada (beep 440Hz)
 void audioCallback(void* userdata, uint8_t* stream, int len) {
+    (void)userdata; // parâmetro não utilizado
     static uint32_t sample_index = 0;
-    const int sample_rate = 44100;
-    const int frequencia = 440; // nota Lá
-    const int amplitude = 28000;
+    const uint32_t sample_rate = 44100;
+    const uint32_t frequencia = 440; // nota Lá
+    const int16_t amplitude = 28000;
     
     int16_t* buffer = (int16_t*)stream;
     int samples = len / 2;
     
     for (int i = 0; i < samples; i++) {
-        int periodo = sample_rate / frequencia;
-        int16_t valor = ((sample_index % periodo) < (periodo / 2)) ? amplitude : -amplitude;
+        const uint32_t periodo = sample_rate / frequencia;
+        const uint32_t meio_periodo = periodo / 2u;
+        int16_t valor = ((sample_index % periodo) < meio_periodo) ? amplitude : -amplitude;
         buffer[i] = valor;
         sample_index++;
     }
