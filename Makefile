@@ -5,8 +5,8 @@ CXXFLAGS = -Wall -Wextra -std=c++17 -g
 SDL_CFLAGS := $(shell pkg-config --cflags sdl2 2>/dev/null)
 SDL_LIBS   := $(shell pkg-config --libs sdl2 2>/dev/null)
 
-SRC = main.cpp c8vm.cpp
-OBJ = $(SRC:.cpp=.o)
+SRC = src/main.cpp src/c8vm.cpp
+OBJ = src/main.o src/c8vm.o
 BIN = chip8
 
 .PHONY: all run clean deps
@@ -16,13 +16,13 @@ all: $(BIN)
 $(BIN): $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(SDL_LIBS)
 
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -c $<
+src/%.o: src/%.cpp
+	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -c $< -o $@
 
-# Run with: make run ROM=path/to/rom.ch8 ARGS="--clock 700 --scale 15"
+# Run with: make run ROM=roms/rom.ch8 ARGS="--clock 700 --scale 15"
 run: $(BIN)
 	@if [ -z "$(ROM)" ]; then \
-		echo "Uso: make run ROM=arquivo.ch8 [ARGS=\"--clock 700 --scale 15\"]"; \
+		echo "Uso: make run ROM=roms/arquivo.ch8 [ARGS=\"--clock 700 --scale 15\"]"; \
 		exit 1; \
 	fi; \
 	./$(BIN) $(ARGS) $(ROM)
