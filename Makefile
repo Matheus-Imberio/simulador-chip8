@@ -25,7 +25,7 @@ run: $(BIN)
 		echo "Uso: make run ROM=roms/arquivo.ch8 [ARGS=\"--clock 700 --scale 15\"]"; \
 		exit 1; \
 	fi; \
-	./$(BIN) $(ARGS) $(ROM)
+	./$(BIN) $(ARGS) "$(ROM)"
 
 # Attempt to install deps (Debian/Ubuntu). On Arch/Manjaro, install: pacman -S sdl2 pkgconf
 deps:

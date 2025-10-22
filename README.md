@@ -2,14 +2,12 @@
 
 Implementação de uma máquina virtual Chip-8 em C++ com SDL2 (vídeo, teclado e áudio), seguindo os requisitos do trabalho do Prof. Dr. Juliano H. Foleis.
 
+**Alunos:**
+- Matheus Henrique Imberio
+- Pedro Conrado Negreiro  
+- João Victor Bonilha
+
 Nota: Esta implementação foca no Chip‑8 clássico (não SCHIP/XO‑CHIP). Opcodes e recursos estendidos dessas variantes não são alvo deste projeto.
-
----
-
-### Documentos da entrega
-
-- `README_COMPILAR.md` / `README_COMPILAR.pdf`: instruções de compilação (Ubuntu/Debian), dependências e uso do Makefile.
-- `README_USO.md` / `README_USO.pdf`: instruções de execução, opções de linha de comando, exemplos, teclado e áudio.
 
 ### Dependências
 
@@ -39,15 +37,8 @@ make        # gera o executável "chip8"
 
 Outros alvos úteis:
 ```bash
-make run ROM=1-chip8-logo.ch8                # executa com a ROM indicada
-make run ROM=pong.ch8 ARGS="--clock 700"     # passa opções
 make clean                                   # limpa binários/objetos
 make deps                                    # dicas de instalação de deps
-```
-
-Compilação manual (alternativa):
-```bash
-g++ -o chip8 main.cpp c8vm.cpp -std=c++17 $(pkg-config --cflags --libs sdl2)
 ```
 
 ---
@@ -55,24 +46,25 @@ g++ -o chip8 main.cpp c8vm.cpp -std=c++17 $(pkg-config --cflags --libs sdl2)
 ## Como usar
 
 Sintaxe básica:
-```sh
-./chip8 [opções] caminho/para/a/rom.ch8
+```bash
+make run ROM="caminho/para/rom.ch8"
 ```
 
-Opções de linha de comando:
+Com atributos:
+```bash
+make run ROM="caminho/para/rom.ch8" ARGS="--clock 700 --scale 15"
+```
+
+Opções disponíveis:
 - `--clock <velocidade>`: Define a velocidade da CPU em Hz. Padrão: 500.
-  - Ex.: `./chip8 --clock 700 pong.ch8`
 - `--scale <fator>`: Define o fator de escala da janela. Padrão: 10 (640x320).
-  - Ex.: `./chip8 --scale 15 pong.ch8`
 - `--load-addr <hex>`: Endereço de carga em hexadecimal. Padrão: 0x200.
-  - Ex.: `./chip8 --load-addr 0x600 jogo.ch8`
-- `--help`: Exibe ajuda detalhada.
 
 Exemplos:
 ```bash
-./chip8 1-chip8-logo.ch8
-./chip8 --clock 1000 --scale 20 pong.ch8
-./chip8 --load-addr 0x200 pong.ch8
+make run ROM="roms/1-chip8-logo.ch8"
+make run ROM="roms/pong.ch8" ARGS="--clock 1000 --scale 20"
+make run ROM="roms/pong.ch8" ARGS="--load-addr 0x200"
 ```
 
 Observações importantes:
@@ -88,14 +80,9 @@ Observações importantes:
 2. Salve o arquivo na pasta `roms/` do projeto.
 3. Execute:
 ```bash
-./chip8 'roms/sua_rom.ch8'
-# com opções:
-./chip8 --clock 700 --scale 15 roms/sua_rom.ch8
-```
-4. Alternativa com Make:
-```bash
 make run ROM="roms/sua_rom.ch8"
-make run ROM="roms/sua_rom.ch8" ARGS="--clock 700"
+# com opções:
+make run ROM="roms/sua_rom.ch8" ARGS="--clock 700 --scale 15"
 ```
 
 Dicas:
@@ -105,6 +92,18 @@ Dicas:
 ---
 
 ## Mapeamento do teclado
+
+**Layout otimizado para jogos (WASD + Espaço):**
+
+| Chip-8 | Teclado físico | Função |
+|--------|-----------------|---------|
+| 8 | W | Cima |
+| 4 | A | Esquerda |
+| 6 | D | Direita |
+| 2 | S | Baixo |
+| 5 | Espaço | Ação/Tiro |
+
+**Layout original (hexadecimal):**
 
 | Chip-8 | Teclado físico |
 |--------|-----------------|
@@ -125,7 +124,7 @@ Dicas:
 Teste rápido de som:
 ```bash
 echo -ne '\x60\x15\xF0\x18\x12\x04' > test_sound.ch8
-./chip8 test_sound.ch8
+make run ROM="roms/test_sound.ch8"
 ```
 
 ---
@@ -133,9 +132,9 @@ echo -ne '\x60\x15\xF0\x18\x12\x04' > test_sound.ch8
 ## Testes sugeridos
 
 ```bash
-./chip8 1-chip8-logo.ch8                  # splash/logo
-./chip8 pong.ch8                          # jogo clássico
-./chip8 --clock 700 --scale 15 pong.ch8   # variação de parâmetros
+make run ROM="roms/1-chip8-logo.ch8"                  # splash/logo
+make run ROM="roms/pong.ch8"                            # jogo clássico
+make run ROM="roms/pong.ch8" ARGS="--clock 700 --scale 15"   # variação de parâmetros
 ```
 
 ---
@@ -170,6 +169,6 @@ Para logar as instruções executadas:
 - CLI: clock, escala, endereço de carga e ajuda conforme especificação.
 - Portabilidade: usa apenas C++17 e SDL2, compilável com `g++`/`clang++` em Linux.
 
-Para a entrega final, gere os PDFs `README_COMPILAR.pdf` e `README_USO.pdf` a partir das seções "Como compilar" e "Como usar" deste arquivo, se requerido pelo edital de entrega.
+Este README contém todas as informações necessárias para compilação, uso e entendimento do projeto.
 
 ---

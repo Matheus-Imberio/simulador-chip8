@@ -455,20 +455,24 @@ void VM::processarInput()
             rodando = false;
         }
 
-        // Mapeia teclas
+        // Mapeia teclas - Layout otimizado para jogos
         if (evento.type == SDL_KEYDOWN) {
             switch (evento.key.keysym.sym) {
+                // Layout WASD + Espaço para jogos
+                case SDLK_w: KEYS[0x8] = 1; break;  // W = Cima
+                case SDLK_a: KEYS[0x4] = 1; break;  // A = Esquerda  
+                case SDLK_s: KEYS[0x2] = 1; break;  // S = Baixo
+                case SDLK_d: KEYS[0x6] = 1; break;  // D = Direita
+                case SDLK_SPACE: KEYS[0x5] = 1; break; // Espaço = Ação/Tiro
+                
+                // Teclas numéricas para outros controles
                 case SDLK_1: KEYS[0x1] = 1; break;
                 case SDLK_2: KEYS[0x2] = 1; break;
                 case SDLK_3: KEYS[0x3] = 1; break;
                 case SDLK_4: KEYS[0xC] = 1; break;
                 case SDLK_q: KEYS[0x4] = 1; break;
-                case SDLK_w: KEYS[0x5] = 1; break;
                 case SDLK_e: KEYS[0x6] = 1; break;
                 case SDLK_r: KEYS[0xD] = 1; break;
-                case SDLK_a: KEYS[0x7] = 1; break;
-                case SDLK_s: KEYS[0x8] = 1; break;
-                case SDLK_d: KEYS[0x9] = 1; break;
                 case SDLK_f: KEYS[0xE] = 1; break;
                 case SDLK_z: KEYS[0xA] = 1; break;
                 case SDLK_x: KEYS[0x0] = 1; break;
@@ -479,17 +483,21 @@ void VM::processarInput()
 
         if (evento.type == SDL_KEYUP) {
             switch (evento.key.keysym.sym) {
+                // Layout WASD + Espaço para jogos
+                case SDLK_w: KEYS[0x8] = 0; break;  // W = Cima
+                case SDLK_a: KEYS[0x4] = 0; break;  // A = Esquerda  
+                case SDLK_s: KEYS[0x2] = 0; break;  // S = Baixo
+                case SDLK_d: KEYS[0x6] = 0; break;  // D = Direita
+                case SDLK_SPACE: KEYS[0x5] = 0; break; // Espaço = Ação/Tiro
+                
+                // Teclas numéricas para outros controles
                 case SDLK_1: KEYS[0x1] = 0; break;
                 case SDLK_2: KEYS[0x2] = 0; break;
                 case SDLK_3: KEYS[0x3] = 0; break;
                 case SDLK_4: KEYS[0xC] = 0; break;
                 case SDLK_q: KEYS[0x4] = 0; break;
-                case SDLK_w: KEYS[0x5] = 0; break;
                 case SDLK_e: KEYS[0x6] = 0; break;
                 case SDLK_r: KEYS[0xD] = 0; break;
-                case SDLK_a: KEYS[0x7] = 0; break;
-                case SDLK_s: KEYS[0x8] = 0; break;
-                case SDLK_d: KEYS[0x9] = 0; break;
                 case SDLK_f: KEYS[0xE] = 0; break;
                 case SDLK_z: KEYS[0xA] = 0; break;
                 case SDLK_x: KEYS[0x0] = 0; break;
