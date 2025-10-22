@@ -91,29 +91,54 @@ Dicas:
 
 ---
 
-## Mapeamento do teclado
+## Mapeamento do Teclado
 
-**Layout otimizado para jogos (WASD + Espaço):**
+Este projeto utiliza um **layout otimizado para jogos**, baseado no esquema **WASD + Espaço**, mantendo também teclas alternativas inspiradas no layout original do Chip-8.
 
-| Chip-8 | Teclado físico | Função |
-|--------|-----------------|---------|
+---
+
+### 🎮 Layout otimizado para jogos
+
+| Chip-8 | Tecla física | Função        |
+|:-------|:--------------|:--------------|
 | 8 | W | Cima |
 | 4 | A | Esquerda |
 | 6 | D | Direita |
 | 2 | S | Baixo |
-| 5 | Espaço | Ação/Tiro |
+| 5 | Espaço | Ação / Tiro |
 
-**Layout original (hexadecimal):**
+---
 
-| Chip-8 | Teclado físico |
-|--------|-----------------|
-| 1 2 3 C | 1 2 3 4 |
-| 4 5 6 D | Q W E R |
-| 7 8 9 E | A S D F |
-| A 0 B F | Z X C V |
+### 🔢 Outras teclas mapeadas (alternativas)
 
-- `ESC`: Sair
+| Chip-8 | Tecla física | Observação |
+|:-------|:--------------|:------------|
+| 1 | 1 | Numérica |
+| 2 | 2 | Alternativa para Baixo |
+| 3 | 3 | Numérica |
+| C | 4 | Numérica |
+| 4 | Q | Alternativa para Esquerda |
+| 6 | E | Alternativa para Direita |
+| D | R | – |
+| E | F | – |
+| A | Z | – |
+| 0 | X | – |
+| B | C | – |
+| F | V | – |
 
+---
+
+### ⌨️ Observações
+
+- O mapeamento prioriza **jogabilidade** e **conveniência**, permitindo usar **WASD + Espaço** ou **teclas numéricas / QWER / ZXCV**.  
+- Algumas teclas físicas representam o mesmo valor do Chip-8 (por exemplo, `S` e `2` → `0x2`), o que é **intencional** — são **atalhos alternativos**.  
+- O **layout hexadecimal clássico** do Chip-8 não é seguido à risca, mas parte dele foi aproveitada para manter compatibilidade.
+
+---
+
+### 🔙 Saída
+
+- **ESC**: encerra o programa
 ---
 
 ## Áudio
